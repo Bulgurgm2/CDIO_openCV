@@ -36,16 +36,12 @@ while(True):
     b2 = cv2.getTrackbarPos("b2", 'hej')
     c2 = cv2.getTrackbarPos("c2", 'hej')
 
-
-
     red_lower = np.array([0, 182, 163])
     red_upper = np.array([23, 255, 255])
     white_lower = np.array([0, 0, 200])
     white_upper = np.array([50, 50, 255])
     brown_lower = np.array([9, 44, 119])
     brown_upper = np.array([53, 239, 255])
-
-
 
     lower = np.array([a1, b1, c1])
     upper = np.array([a2, b2, c2])
@@ -56,13 +52,11 @@ while(True):
     mask_comp = mask_white | mask_red
     res = cv2.bitwise_and(frame, frame, mask=mask)
 
-
     edges = cv2.Canny(res, 100, 200)
 
     cv2.imshow('Masked', res)
     cv2.imshow('Direct from camera', frame)
     cv2.imshow('Edges', edges)
-
 
     if cv2.waitKey(1) == ord('q'):
         print("------------- ")
@@ -71,7 +65,8 @@ while(True):
         print("------------- ")
 
         break
-    elif cv2.waitKey(1) == ord('s'):
+
+    if cv2.waitKey(1) == ord('s'):
         print("------------- ")
         print(lower)
         print(upper)
