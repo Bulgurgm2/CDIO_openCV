@@ -11,9 +11,9 @@ except:
 
 #  setting for demo
 
-x = 0
-y = 0
-speed = 2
+x_coordinate = 500
+y_coordinate = 500
+speed = 1
 
 # Radius of circle
 radius = 20
@@ -31,11 +31,14 @@ window_name = 'Image'
 
 tresholde = 7
 
-red_lower = np.array([0, 182, 163])
-red_upper = np.array([23, 255, 255])
+#red_lower = np.array([0, 182, 163])
+#red_upper = np.array([23, 255, 255])
 
-white_lower = np.array([0, 0, 220])
+white_lower = np.array([0, 0, 190])
 white_upper = np.array([190, 128, 255])
+
+red_lower = np.array([75, 23, 139])
+red_upper = np.array([107, 90, 229])
 
 # font
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -80,7 +83,9 @@ class Bold:
 
 
 def main():
-    bane = analyse()
+
+    global x_coordinate, y_coordinate
+    bane, red_edge = analyse()
 
     while 1:
         start_time = time.time()
@@ -95,12 +100,57 @@ def main():
         img = cv2.putText(img, f"balls: {len(bane.list_of_balls)}", (500, 50), font, fontScale, color, thickness,
                           cv2.LINE_AA)
 
+        target = bane.list_of_balls[0]
+
+        if target.x > x_coordinate:
+            x_move = speed
+        if target.y > y_coordinate:
+            y_move = speed
+
+        if target.x < x_coordinate:
+            x_move = -speed
+        if target.y < y_coordinate:
+            y_move = -speed
+
+
+
+        danger_box = []
+
+        for index_x in range(x_coordinate-radius2, x_coordinate+radius2):
+            danger_box.append((index_x, y_coordinate-radius2))
+            danger_box.append((index_x, y_coordinate+radius2))
+
+        for index_y in range(y_coordinate-radius2, y_coordinate+radius2):
+            danger_box.append((x_coordinate-radius2, index_y))
+            danger_box.append((x_coordinate+radius2, index_y))
+
+        if not set(bane.borders).isdisjoint(danger_box):
+            x_coordinate += x_move * -2
+            y_coordinate += y_move * -4
+        else:
+            x_coordinate += x_move
+            y_coordinate += y_move
+
+        if (target.x, target.y) in danger_box:
+            bane.list_of_balls.remove(target)
+
+        # Center coordinates
+        center_coordinates = (x_coordinate, y_coordinate)
+
+        # Using cv2.circle() method
+        # Draw a circle with blue line borders of thickness of 2 px
+        img = cv2.circle(img, center_coordinates, radius, color, thickness)
+        img = cv2.rectangle(img, (x_coordinate - radius2, y_coordinate - radius2), (x_coordinate + radius2, y_coordinate + radius2), color2, thickness)
+
+
+
         #  draw image
         if cv2.waitKey(1) == ord('q'):
             break
         img = fps(start_time, img)
 
         cv2.imshow("Detected Circle", img)
+        cv2.imshow("red", red_edge)
 
 
 
@@ -127,12 +177,12 @@ def analyse():
 
             #  make color masks and apply them on img
             mask_white = cv2.inRange(img_hsv, white_lower, white_upper)
-            mask_red = cv2.inRange(img_hsv, red_lower, red_upper)
-            red_res = cv2.bitwise_and(img, img, mask=mask_red)
             white_res = cv2.bitwise_and(img, img, mask=mask_white)
 
-            #  edges detection on red_res to find borders
+            mask_red = cv2.inRange(img_hsv, red_lower, red_upper)
+            red_res = cv2.bitwise_and(img, img, mask=mask_red)
             red_edges = cv2.Canny(red_res, 100, 200)
+
 
             #  convert white_res to grayscale.
             gray = cv2.cvtColor(white_res, cv2.COLOR_BGR2GRAY)
@@ -141,11 +191,13 @@ def analyse():
             gray_blurred = cv2.blur(gray, (2, 2))
             #gray_blurred = gray
 
+            cv2.imshow("reed", gray_blurred)
+
+
             #  apply Hough transform on the blurred image.
             detected_circles = cv2.HoughCircles(gray_blurred,
                                                 cv2.HOUGH_GRADIENT, 1.5, 5, param1=250,
                                                 param2=19, maxRadius=9, minRadius=5)
-            cv2.imshow("Detected", gray_blurred)
             #  draw circles that are detected.
             if detected_circles is not None:
 
@@ -173,12 +225,16 @@ def analyse():
 
         cv2.imshow("Detected Circle", img)
 
+    #  edges detection on red_res to find borders
 
+    indices = np.where(red_edges != [0])
+    bane.borders = zip(indices[0], indices[1])
+    print(set(bane.borders))
     for ball in list_of_ball_coordinate:
         bane.add_cordinats(ball)
     bane.remove_false_balls()
 
-    return bane
+    return bane, red_edges
 
 
 
